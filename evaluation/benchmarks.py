@@ -6,6 +6,7 @@ import os
 import json
 import random
 import pandas as pd
+from io import StringIO
 
 from tqdm import tqdm
 from datasets import load_dataset, Dataset, load_from_disk
@@ -258,7 +259,12 @@ class Benchmark:
         if load_cot:
             assert self.name in COT_PROMPTS, "No CoT prompts found for {}.".format(self.name)
             cot_path = os.path.join(ROOT_DIR, 'evaluation', 'prompt_cot', f"{COT_PROMPTS[self.name]}.jsonl")
-            samples = pd.read_json(cot_path, lines=True).to_dict(orient='records')
+            # Read the content of the file first
+            with open(cot_path, 'r') as file:
+                cot_content = file.read()
+
+            # Now pass the file content, not the file path
+            samples = pd.read_json(StringIO(cot_content), lines=True).to_dict(orient='records')
             demonstrations = random.sample(samples, shots)
             few_shot_prompt = '\n\n'.join([
                 f"Question: {_get_question(demo['prompt'])}\n{demo['gold']}"
@@ -292,7 +298,7 @@ class Benchmark:
         """
         Saves the generations in the respective directory.
         """
-        path = os.path.join(ROOT_DIR, 'benchmarks', 'generations')
+        path = os.path.join(ROOT_DIR, 'benchmarks', 'generations', self.name)
         if not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path))
         if shots == 0:
@@ -314,7 +320,25 @@ class Benchmark:
                              Please run inference first.".format(self.name, path))
         print("Loading {} generations from the following path: {}".format(self.name, path))
         self.generations = pd.read_json(path)
+    
+    def save_results(self, results_dict, run_name, checkpoint_name, subset=None, shots=0):
+        """
+        Saves the results in the respective directory.
+        """
+        path = os.path.join(ROOT_DIR, 'benchmarks', 'results', self.name, checkpoint_name)
+        if subset:
+            path = os.path.join(path, str(subset))
+        os.makedirs(path, exist_ok=True)
+        if shots == 0:
+            results_path = os.path.join(path, f"{run_name}.log")
+        else:
+            results_path = os.path.join(path, f"{run_name}-{checkpoint_name}-{str(shots)}-shot.log")
 
+        with open(results_path, 'w') as f:
+            for key, value in results_dict.items():
+                f.write(f"{key}: {value}\n")
+
+        print("Stored {} results to the following path: {}".format(self.name, results_path))
 
 class MedMCQA(Benchmark):
     '''
