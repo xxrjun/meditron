@@ -8,6 +8,7 @@ from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer, PorterStemmer
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_recall_fscore_support
+from benchmarks import benchmark_factory, load_instruction
 
 from collections import Counter
 
@@ -392,6 +393,9 @@ def main(args):
     # prompts = load_json(prompt_pth)
     # data.extend(prompts)
 
+    data_obj = benchmark_factory(args.benchmark)
+
+
     reduced = []
     if "mmlu_medical" in run_name:
         for sample in data:
@@ -420,6 +424,10 @@ def main(args):
         subset=None, verbose=args.verbose
     )
 
+    data_obj.save_results(
+        metrics, run_name, args.checkpoint_name, subset=None, shots=args.shots
+    )
+
     if cot and len(metrics["ignored"]) > 0:
         save_dictlist_to_json(
             metrics["ignored"],
@@ -433,6 +441,9 @@ def main(args):
             display(
                 metrics, run_name, args.benchmark,
                 subset=subset, verbose=args.verbose
+            )
+            data_obj.save_results(
+                metrics, run_name, args.checkpoint_name, subset=subset, shots=args.shots
             )
 
     if args.wandb:
@@ -453,6 +464,8 @@ if __name__ == '__main__':
                         help="The benchmark to evaluate on: [pubmedqa, medqa, medqa4, medmcqa, mmlu_medical, mmlu_general]")
     parser.add_argument('--checkpoint', type=str, default='replay-pubmedqa',
                         help="The checkpoint to evaluate on")
+    parser.add_argument('--checkpoint_name', type=str,
+                        help="Name of the checkpoint to run inference on")
     parser.add_argument('--cot', action='store_true',
                         help="Whether chain-or-thought is used for inference")
     parser.add_argument('--shots', type=int, default=0,
