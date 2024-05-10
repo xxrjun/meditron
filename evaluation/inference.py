@@ -249,16 +249,13 @@ def main(args):
         "tokenizer": args.checkpoint,
         "trust_remote_code": True,
         "max_num_seqs": 1024,
-        "tensor_parallel_size": torch.cuda.device_count(),
+        "tensor_parallel_size": args.tensor_parallel_size
     }
 
     if any([x in args.checkpoint_name for x in ["med42", "clinical-camel", "mistral", "mpt",
                                                 "mistral-raw", "falcon", "zephyr"]]):
         logging.info(f"/pure-mlo-scratch/trial-runs/{args.checkpoint_name}")
         kwargs["download_dir"] = f"/pure-mlo-scratch/trial-runs/{args.checkpoint_name}"
-
-    if "7b" in args.checkpoint:
-        kwargs["tensor_parallel_size"] = 4
 
     client = vllm.LLM(**kwargs)
 
@@ -340,5 +337,9 @@ if __name__ == "__main__":
                         type=int,
                         default=16,
                         help="Batch size for inference")
+    parser.add_argument('--tensor_parallel_size',
+                        type=int,
+                        default=1,
+                        help="Number of tensor parallelism")
     args = parser.parse_args()
     main(args)

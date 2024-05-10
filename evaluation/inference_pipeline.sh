@@ -61,6 +61,7 @@ MULTI_SEED=0
 BACKEND=vllm
 WANDB=1
 BATCH_SIZE=16
+TENSOR_PARALLEL_SIZE=2
 
 HELP_STR="[--checkpoint=$CHECKPOINT_NAME] [--benchmark=$BENCHMARK] [--help]"
 
@@ -76,7 +77,7 @@ elif [[ $# = 0 ]]; then
 	exit 1
 fi
 
-while getopts c:b:s:r:e:m:t:d: flag
+while getopts c:b:s:r:e:m:t:d:g: flag
 do
     case "${flag}" in
         c) CHECKPOINT_NAME=${OPTARG};;
@@ -87,6 +88,7 @@ do
         m) MULTI_SEED=${OPTARG};;
         t) SC_COT=${OPTARG};;
         d) BATCH_SIZE=${OPTARG};;
+        g) TENSOR_PARALLEL_SIZE=${OPTARG};;
     esac
 done
 
@@ -103,13 +105,15 @@ echo "COT: $COT"
 echo "Multi seed: $MULTI_SEED"
 echo "SC COT: $SC_COT"
 echo "BATCH_SIZE: $BATCH_SIZE"
+echo "TENSOR_PARALLEL_SIZE: $TENSOR_PARALLEL_SIZE"
 echo
 
 COMMON_ARGS="--checkpoint  $CHECKPOINT \
     --checkpoint_name ${CHECKPOINT_NAME} \
     --benchmark $BENCHMARK \
     --shots $SHOTS \
-    --batch_size $BATCH_SIZE"
+    --batch_size $BATCH_SIZE \
+    --tensor_parallel_size $TENSOR_PARALLEL_SIZE"
 ACC_ARGS="--checkpoint $CHECKPOINT_NAME \
     --benchmark $BENCHMARK \
     --shots $SHOTS"
